@@ -6,6 +6,7 @@ from google.ads.googleads.errors import GoogleAdsException
 
 
 def load_client() -> GoogleAdsClient:
+    os.environ.setdefault("GOOGLE_ADS_USE_PROTO_PLUS", "True")
     return GoogleAdsClient.load_from_env()
 
 
