@@ -1,0 +1,4 @@
+playwright>=1.44.0
+requests>=2.31.0
+pyyaml>=6.0
+PyGithub>=2.3.0

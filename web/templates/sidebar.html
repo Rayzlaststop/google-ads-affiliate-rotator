@@ -1,0 +1,18 @@
+{% set nav_items = [
+  ('/', '📊', '总览', 'dashboard'),
+  ('/params', '🔗', '参数池', 'params_page'),
+  ('/scraper', '🤖', '采集任务', 'scraper_page'),
+] %}
+<div class="sidebar">
+  <div class="sidebar-logo">
+    联盟参数后台
+    <span>Affiliate Rotator</span>
+  </div>
+  <nav class="nav">
+    {% for href, icon, label, endpoint in nav_items %}
+    <a href="{{ href }}" class="{% if request.endpoint == endpoint %}active{% endif %}">
+      <span class="nav-icon">{{ icon }}</span>{{ label }}
+    </a>
+    {% endfor %}
+  </nav>
+</div>

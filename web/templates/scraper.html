@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>采集任务 - 联盟参数后台</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, sans-serif; background: #f0f2f5; color: #333; display: flex; min-height: 100vh; }
+.sidebar { width: 220px; background: #1a1f2e; color: #c8cdd8; display: flex; flex-direction: column; flex-shrink: 0; }
+.sidebar-logo { padding: 24px 20px 16px; font-size: 1rem; font-weight: 600; color: #fff; border-bottom: 1px solid #2a3045; }
+.sidebar-logo span { font-size: .75rem; font-weight: 400; color: #6b7280; display: block; margin-top: 2px; }
+.nav { flex: 1; padding: 12px 0; }
+.nav a { display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: #c8cdd8; text-decoration: none; font-size: .9rem; }
+.nav a:hover { background: #2a3045; color: #fff; }
+.nav a.active { background: #2563eb; color: #fff; }
+.nav-icon { font-size: 1rem; width: 20px; text-align: center; }
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.topbar { background: #fff; padding: 14px 28px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; }
+.topbar h1 { font-size: 1.1rem; font-weight: 600; }
+.content { flex: 1; padding: 24px 28px; overflow-y: auto; }
+.card { background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.07); }
+.card-title { font-size: .9rem; font-weight: 600; color: #555; margin-bottom: 16px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group label { font-size: .8rem; color: #666; font-weight: 500; }
+.form-group input, .form-group select { padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: .88rem; }
+.form-group input:focus, .form-group select:focus { outline: none; border-color: #2563eb; }
+.form-group.full { grid-column: 1 / -1; }
+.btn { padding: 9px 20px; border-radius: 6px; border: none; cursor: pointer; font-size: .88rem; font-weight: 500; }
+.btn-primary { background: #2563eb; color: #fff; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-primary:disabled { background: #93c5fd; cursor: not-allowed; }
+.btn-run { background: #16a34a; color: #fff; padding: 10px 24px; font-size: .95rem; }
+.btn-run:hover { background: #15803d; }
+.btn-run:disabled { background: #86efac; cursor: not-allowed; }
+.status-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.dot-idle { background: #d1d5db; }
+.dot-running { background: #f59e0b; animation: pulse 1s infinite; }
+.dot-success { background: #22c55e; }
+.dot-error { background: #ef4444; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.log-box { background: #0f172a; color: #e2e8f0; font-family: monospace; font-size: .8rem; padding: 14px; border-radius: 8px; min-height: 120px; max-height: 320px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; }
+.log-box.empty { color: #475569; }
+.proxy-section { display: none; }
+.proxy-section.visible { display: contents; }
+.hint { font-size: .78rem; color: #aaa; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-logo">联盟参数后台<span>Affiliate Rotator</span></div>
+  <nav class="nav">
+    <a href="/"><span class="nav-icon">📊</span>总览</a>
+    <a href="/params"><span class="nav-icon">🔗</span>参数池</a>
+    <a href="/scraper" class="active"><span class="nav-icon">🤖</span>采集任务</a>
+  </nav>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <h1>采集任务</h1>
+    <div style="font-size:.82rem;color:#888">
+      {% if password_enabled %}<a href="/logout" style="color:#888;text-decoration:none">退出</a>{% endif %}
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- 运行控制 -->
+    <div class="card">
+      <div class="card-title">运行控制</div>
+      <div class="status-row">
+        <span class="status-dot {% if scraper_state.running %}dot-running{% elif scraper_state.last_status == 'success' %}dot-success{% elif scraper_state.last_status == 'error' %}dot-error{% else %}dot-idle{% endif %}" id="statusDot"></span>
+        <span id="statusText" style="font-size:.9rem">
+          {% if scraper_state.running %}运行中…
+          {% elif scraper_state.last_status == 'success' %}上次采集成功
+          {% elif scraper_state.last_status == 'error' %}上次采集失败
+          {% else %}待运行{% endif %}
+        </span>
+        {% if scraper_state.last_run %}
+        <span style="font-size:.78rem;color:#aaa">{{ scraper_state.last_run[:19].replace('T',' ') }} UTC</span>
+        {% endif %}
+      </div>
+      <button class="btn btn-run" id="runBtn" onclick="runScraper()" {% if scraper_state.running %}disabled{% endif %}>
+        ▶ 立即采集
+      </button>
+    </div>
+
+    <!-- 运行日志 -->
+    <div class="card">
+      <div class="card-title">运行日志</div>
+      <div class="log-box {% if not scraper_state.last_log %}empty{% endif %}" id="logBox">
+        {{ scraper_state.last_log or '暂无日志，点击「立即采集」开始运行。' }}
+      </div>
+    </div>
+
+    <!-- 采集配置 -->
+    <div class="card">
+      <div class="card-title">采集配置</div>
+      <form method="post" action="/scraper/config">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>BitBrowser 模式</label>
+            <select name="bitbrowser_mode" id="modeSelect" onchange="toggleProxy()">
+              <option value="use_existing" {% if cfg.bitbrowser_mode == 'use_existing' %}selected{% endif %}>使用已有窗口</option>
+              <option value="create_static" {% if cfg.bitbrowser_mode == 'create_static' %}selected{% endif %}>创建新窗口（静态代理）</option>
+              <option value="create_dynamic" {% if cfg.bitbrowser_mode == 'create_dynamic' %}selected{% endif %}>创建新窗口（动态IP）</option>
+            </select>
+          </div>
+          <div class="form-group" id="profileIdGroup">
+            <label>Profile ID</label>
+            <input type="text" name="bitbrowser_profile_id" value="{{ cfg.bitbrowser_profile_id or '' }}" placeholder="在 BitBrowser 中查看">
+          </div>
+        </div>
+
+        <!-- 静态代理字段 -->
+        <div class="form-row proxy-section" id="staticProxy">
+          <div class="form-group">
+            <label>代理 Host</label>
+            <input type="text" name="proxy_host" value="{{ cfg.proxy_host or '' }}" placeholder="1.2.3.4">
+          </div>
+          <div class="form-group">
+            <label>代理 Port</label>
+            <input type="number" name="proxy_port" value="{{ cfg.proxy_port or '' }}" placeholder="1080">
+          </div>
+          <div class="form-group">
+            <label>用户名</label>
+            <input type="text" name="proxy_user" value="{{ cfg.proxy_user or '' }}">
+          </div>
+          <div class="form-group">
+            <label>密码</label>
+            <input type="password" name="proxy_password" placeholder="不修改则留空">
+          </div>
+        </div>
+
+        <!-- 动态IP字段 -->
+        <div class="form-row proxy-section" id="dynamicProxy">
+          <div class="form-group full">
+            <label>动态IP提取链接</label>
+            <input type="text" name="dynamic_ip_url" value="{{ cfg.dynamic_ip_url or '' }}" placeholder="http://example.tiquip.com/tiqu">
+          </div>
+          <div class="form-group">
+            <label>Channel</label>
+            <input type="text" name="dynamic_ip_channel" value="{{ cfg.dynamic_ip_channel or 'common' }}">
+          </div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid #f0f0f0;margin:16px 0">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>搜索引擎</label>
+            <input type="text" name="search_engine" value="{{ cfg.search_engine or 'https://www.google.com' }}">
+          </div>
+          <div class="form-group">
+            <label>目标域名（搜索结果匹配）</label>
+            <input type="text" name="search_result_domain" value="{{ cfg.search_result_domain or '' }}" placeholder="t-mobile.com">
+          </div>
+          <div class="form-group full">
+            <label>搜索关键词</label>
+            <input type="text" name="search_query" value="{{ cfg.search_query or '' }}" placeholder="t-mobile home internet affiliate">
+          </div>
+          <div class="form-group">
+            <label>兜底 URL（搜索失败时使用）</label>
+            <input type="text" name="fallback_url" value="{{ cfg.fallback_url or '' }}" placeholder="https://...">
+          </div>
+          <div class="form-group">
+            <label>目标路径（可选）</label>
+            <input type="text" name="target_path" value="{{ cfg.target_path or '' }}" placeholder="/home-internet/plans">
+          </div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid #f0f0f0;margin:16px 0">
+
+        <div class="form-row">
+          <div class="form-group full">
+            <label>GitHub 仓库</label>
+            <input type="text" name="github_repo" value="{{ cfg.github_repo or '' }}" placeholder="用户名/google-ads-affiliate-rotator">
+            <span class="hint">GITHUB_TOKEN 通过环境变量设置，不在此填写</span>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" type="submit" style="margin-top:4px">保存配置</button>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function toggleProxy() {
+  const mode = document.getElementById('modeSelect').value;
+  document.getElementById('profileIdGroup').style.display = mode === 'use_existing' ? '' : 'none';
+  document.getElementById('staticProxy').classList.toggle('visible', mode === 'create_static');
+  document.getElementById('dynamicProxy').classList.toggle('visible', mode === 'create_dynamic');
+}
+toggleProxy();
+
+function runScraper() {
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('logBox').textContent = '启动中…';
+  document.getElementById('logBox').classList.remove('empty');
+  fetch('/scraper/run', {method:'POST'}).then(r => r.json()).then(d => {
+    if (d.ok) pollStatus();
+    else { alert(d.msg); document.getElementById('runBtn').disabled = false; }
+  });
+}
+
+function pollStatus() {
+  fetch('/scraper/status').then(r => r.json()).then(d => {
+    const dot = document.getElementById('statusDot');
+    const txt = document.getElementById('statusText');
+    const log = document.getElementById('logBox');
+    if (d.last_log) { log.textContent = d.last_log; log.scrollTop = log.scrollHeight; }
+    if (d.running) {
+      dot.className = 'status-dot dot-running';
+      txt.textContent = '运行中…';
+      setTimeout(pollStatus, 2000);
+    } else {
+      dot.className = 'status-dot ' + (d.last_status === 'success' ? 'dot-success' : 'dot-error');
+      txt.textContent = d.last_status === 'success' ? '上次采集成功' : '上次采集失败';
+      document.getElementById('runBtn').disabled = false;
+    }
+  });
+}
+</script>
+</body>
+</html>

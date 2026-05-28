@@ -1,0 +1,40 @@
+# BitBrowser 指纹浏览器配置
+# 模式选择：use_existing（用已有窗口ID）/ create_static（创建新窗口+静态代理）/ create_dynamic（创建新窗口+动态IP）
+bitbrowser_mode: "use_existing"
+bitbrowser_profile_id: "你的profile_id"  # use_existing 模式下填写
+
+# create_static 模式：静态 socks5 代理
+# bitbrowser_mode: "create_static"
+# proxy_host: "1.2.3.4"
+# proxy_port: 1020
+# proxy_user: "abc"
+# proxy_password: "def"
+# proxy_type: "socks5"
+
+# create_dynamic 模式：动态 IP 提取链接
+# bitbrowser_mode: "create_dynamic"
+# dynamic_ip_url: "http://example.tiquip.com/tiqu"
+# dynamic_ip_channel: "common"
+# proxy_type: "socks5"
+
+# 搜索引擎配置（优先通过搜索引擎找到目标网站，找不到再用 fallback_url）
+search_engine: "https://www.google.com"
+search_query: "t-mobile home internet affiliate"  # 搜索关键词/网站名/网址
+search_result_domain: "t-mobile.com"              # 在搜索结果中匹配这个域名
+
+# 兜底：搜索失败时直接访问此 URL
+fallback_url: "https://www.t-mobile.com/home-internet/plans"
+
+# 进入目标网站后，要访问的具体路径（可选，留空则停在搜索结果落地页）
+target_path: "/home-internet/plans"
+
+# 识别联盟链接的 URL 特征（满足任一即视为联盟链接）
+affiliate_patterns:
+  - "irgwc=1"
+  - "afsrc=1"
+  - "irpid="
+
+# GitHub 仓库信息
+github_repo: "你的用户名/google-ads-affiliate-rotator"
+params_file_path: "config/params.yaml"
+# GITHUB_TOKEN 从环境变量读取，不写在这里

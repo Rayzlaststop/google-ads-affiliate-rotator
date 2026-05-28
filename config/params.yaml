@@ -1,0 +1,7 @@
+campaign_ids:
+- '6217528868'
+params:
+- im_ref=AAAA&sharedid=&irpid=101044&cmpid=CAMPAIGN_A&irgwc=1&afsrc=1
+- im_ref=BBBB&sharedid=&irpid=101044&cmpid=CAMPAIGN_B&irgwc=1&afsrc=1
+- im_ref=CCCC&sharedid=&irpid=101044&cmpid=CAMPAIGN_C&irgwc=1&afsrc=1
+start_time: '2025-01-01T00:00:00'

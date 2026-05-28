@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>联盟参数管理后台</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, sans-serif; background: #f0f2f5; color: #333; display: flex; min-height: 100vh; }
+
+/* 侧边栏 */
+.sidebar { width: 220px; background: #1a1f2e; color: #c8cdd8; display: flex; flex-direction: column; flex-shrink: 0; }
+.sidebar-logo { padding: 24px 20px 16px; font-size: 1rem; font-weight: 600; color: #fff; border-bottom: 1px solid #2a3045; }
+.sidebar-logo span { font-size: .75rem; font-weight: 400; color: #6b7280; display: block; margin-top: 2px; }
+.nav { flex: 1; padding: 12px 0; }
+.nav a { display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: #c8cdd8; text-decoration: none; font-size: .9rem; transition: background .15s; }
+.nav a:hover { background: #2a3045; color: #fff; }
+.nav a.active { background: #2563eb; color: #fff; }
+.nav-icon { font-size: 1rem; width: 20px; text-align: center; }
+
+/* 主内容 */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.topbar { background: #fff; padding: 14px 28px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; }
+.topbar h1 { font-size: 1.1rem; font-weight: 600; }
+.topbar-right { font-size: .82rem; color: #888; }
+.content { flex: 1; padding: 24px 28px; overflow-y: auto; }
+
+/* 卡片 */
+.card { background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.07); }
+.card-title { font-size: .9rem; font-weight: 600; color: #555; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+/* 状态网格 */
+.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+.stat-card { background: #fff; border-radius: 10px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(0,0,0,.07); }
+.stat-label { font-size: .78rem; color: #888; margin-bottom: 6px; }
+.stat-value { font-size: 1.6rem; font-weight: 700; color: #1a1f2e; }
+.stat-sub { font-size: .78rem; color: #aaa; margin-top: 4px; }
+
+/* 当前参数高亮 */
+.current-param { background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 12px 16px; font-family: monospace; font-size: .85rem; word-break: break-all; color: #166534; }
+
+/* 倒计时 */
+#countdown { font-size: 1.4rem; font-weight: 700; color: #2563eb; }
+
+/* 采集状态 */
+.status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+.dot-idle { background: #d1d5db; }
+.dot-running { background: #f59e0b; animation: pulse 1s infinite; }
+.dot-success { background: #22c55e; }
+.dot-error { background: #ef4444; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* GitHub 状态 */
+.gh-commit { font-size: .82rem; color: #555; }
+.gh-sha { font-family: monospace; background: #f3f4f6; padding: 2px 6px; border-radius: 4px; }
+
+/* 按钮 */
+.btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: .88rem; font-weight: 500; }
+.btn-primary { background: #2563eb; color: #fff; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-primary:disabled { background: #93c5fd; cursor: not-allowed; }
+.btn-sm { padding: 5px 12px; font-size: .82rem; }
+</style>
+</head>
+<body>
+
+{% include 'sidebar.html' %}
+
+<div class="main">
+  <div class="topbar">
+    <h1>总览</h1>
+    <div class="topbar-right">
+      {% if password_enabled %}<a href="/logout" style="color:#888;text-decoration:none">退出登录</a>{% endif %}
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">参数池总数</div>
+        <div class="stat-value">{{ params|length }}</div>
+        <div class="stat-sub">组联盟参数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">当前使用</div>
+        <div class="stat-value">{{ current_index + 1 if params else '—' }}</div>
+        <div class="stat-sub">第 {{ current_index + 1 }} / {{ params|length }} 组</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">下次切换</div>
+        <div class="stat-value"><span id="countdown">--:--</span></div>
+        <div class="stat-sub">后自动切换</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔗 当前使用的联盟参数</div>
+      {% if params %}
+      <div class="current-param">{{ params[current_index] }}</div>
+      {% else %}
+      <p style="color:#aaa;font-size:.9rem">暂无参数，请前往「参数池」添加。</p>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <div class="card-title">🤖 采集任务</div>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <div>
+          <span class="status-dot {% if scraper_state.running %}dot-running{% elif scraper_state.last_status == 'success' %}dot-success{% elif scraper_state.last_status == 'error' %}dot-error{% else %}dot-idle{% endif %}"></span>
+          <span id="scraper-status-text" style="font-size:.88rem">
+            {% if scraper_state.running %}运行中…
+            {% elif scraper_state.last_status == 'success' %}上次成功
+            {% elif scraper_state.last_status == 'error' %}上次失败
+            {% else %}未运行{% endif %}
+          </span>
+          {% if scraper_state.last_run %}
+          <span style="font-size:.78rem;color:#aaa;margin-left:8px">{{ scraper_state.last_run[:19].replace('T',' ') }} UTC</span>
+          {% endif %}
+        </div>
+        <button class="btn btn-primary btn-sm" id="runBtn" onclick="runScraper()" {% if scraper_state.running %}disabled{% endif %}>
+          立即采集
+        </button>
+        <a href="/scraper" style="font-size:.82rem;color:#2563eb">配置采集 →</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📦 GitHub 同步状态</div>
+      <div id="gh-status" class="gh-commit">加载中…</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// 倒计时
+let nextSwitch = {{ next_switch }};
+function updateCountdown() {
+  const m = String(Math.floor(nextSwitch / 60)).padStart(2, '0');
+  const s = String(nextSwitch % 60).padStart(2, '0');
+  document.getElementById('countdown').textContent = m + ':' + s;
+  if (nextSwitch > 0) nextSwitch--;
+}
+updateCountdown();
+setInterval(updateCountdown, 1000);
+
+// 采集
+function runScraper() {
+  document.getElementById('runBtn').disabled = true;
+  fetch('/scraper/run', {method:'POST'}).then(r => r.json()).then(d => {
+    if (d.ok) pollScraper();
+    else alert(d.msg);
+  });
+}
+function pollScraper() {
+  fetch('/scraper/status').then(r => r.json()).then(d => {
+    const el = document.getElementById('scraper-status-text');
+    if (d.running) {
+      el.textContent = '运行中…';
+      setTimeout(pollScraper, 2000);
+    } else {
+      el.textContent = d.last_status === 'success' ? '上次成功' : '上次失败';
+      document.getElementById('runBtn').disabled = false;
+    }
+  });
+}
+
+// GitHub 状态
+fetch('/api/github-status').then(r => r.json()).then(d => {
+  const el = document.getElementById('gh-status');
+  if (d.error) { el.textContent = '获取失败：' + d.error; return; }
+  if (!d.sha) { el.textContent = '未配置 GITHUB_TOKEN'; return; }
+  el.innerHTML = `<span class="gh-sha">${d.sha}</span> &nbsp;${d.message}&nbsp; <span style="color:#aaa">${d.date?.slice(0,10)} · ${d.author}</span>`;
+});
+</script>
+</body>
+</html>

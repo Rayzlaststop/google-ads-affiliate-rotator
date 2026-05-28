@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>参数池 - 联盟参数后台</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, sans-serif; background: #f0f2f5; color: #333; display: flex; min-height: 100vh; }
+.sidebar { width: 220px; background: #1a1f2e; color: #c8cdd8; display: flex; flex-direction: column; flex-shrink: 0; }
+.sidebar-logo { padding: 24px 20px 16px; font-size: 1rem; font-weight: 600; color: #fff; border-bottom: 1px solid #2a3045; }
+.sidebar-logo span { font-size: .75rem; font-weight: 400; color: #6b7280; display: block; margin-top: 2px; }
+.nav { flex: 1; padding: 12px 0; }
+.nav a { display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: #c8cdd8; text-decoration: none; font-size: .9rem; }
+.nav a:hover { background: #2a3045; color: #fff; }
+.nav a.active { background: #2563eb; color: #fff; }
+.nav-icon { font-size: 1rem; width: 20px; text-align: center; }
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.topbar { background: #fff; padding: 14px 28px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; }
+.topbar h1 { font-size: 1.1rem; font-weight: 600; }
+.topbar-right { font-size: .82rem; color: #888; }
+.content { flex: 1; padding: 24px 28px; overflow-y: auto; }
+.card { background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.07); }
+.card-title { font-size: .9rem; font-weight: 600; color: #555; margin-bottom: 16px; }
+.param-list { list-style: none; }
+.param-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 8px; background: #fafafa; cursor: grab; }
+.param-item.active { background: #f0fdf4; border-color: #86efac; }
+.param-item.active .badge { background: #22c55e; color: #fff; font-size: .7rem; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+.drag-handle { color: #bbb; cursor: grab; user-select: none; font-size: 1.1rem; }
+.param-idx { font-size: .75rem; color: #bbb; width: 24px; text-align: right; flex-shrink: 0; }
+.param-text { flex: 1; font-family: monospace; font-size: .83rem; word-break: break-all; }
+.btn-del { background: none; border: none; color: #e57373; cursor: pointer; font-size: 1rem; padding: 3px 7px; border-radius: 4px; }
+.btn-del:hover { background: #fce4e4; }
+.add-form { display: flex; gap: 10px; }
+.add-form input { flex: 1; padding: 9px 12px; border: 1px solid #ddd; border-radius: 6px; font-family: monospace; font-size: .85rem; }
+.add-form input:focus { outline: none; border-color: #2563eb; }
+.btn { padding: 9px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: .88rem; font-weight: 500; }
+.btn-primary { background: #2563eb; color: #fff; }
+.btn-primary:hover { background: #1d4ed8; }
+.empty { color: #aaa; font-size: .9rem; padding: 8px 0; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-logo">联盟参数后台<span>Affiliate Rotator</span></div>
+  <nav class="nav">
+    <a href="/"><span class="nav-icon">📊</span>总览</a>
+    <a href="/params" class="active"><span class="nav-icon">🔗</span>参数池</a>
+    <a href="/scraper"><span class="nav-icon">🤖</span>采集任务</a>
+  </nav>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <h1>参数池管理</h1>
+    <div class="topbar-right">共 {{ params|length }} 组 · 当前使用第 {{ current_index + 1 }} 组
+      {% if password_enabled %} · <a href="/logout" style="color:#888;text-decoration:none">退出</a>{% endif %}
+    </div>
+  </div>
+  <div class="content">
+
+    <div class="card">
+      <div class="card-title">参数列表（拖拽排序）</div>
+      {% if params %}
+      <ul class="param-list" id="paramList">
+        {% for p in params %}
+        <li class="param-item {% if loop.index0 == current_index %}active{% endif %}" data-idx="{{ loop.index0 }}">
+          <span class="drag-handle">⠿</span>
+          <span class="param-idx">{{ loop.index }}</span>
+          <span class="param-text">{{ p }}</span>
+          {% if loop.index0 == current_index %}<span class="badge">当前</span>{% endif %}
+          <form method="post" action="/params/delete/{{ loop.index0 }}" style="margin:0" onsubmit="return confirm('确认删除？')">
+            <button class="btn-del" type="submit" title="删除">✕</button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="empty">暂无参数，请在下方添加。</p>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <div class="card-title">添加新参数组</div>
+      <form class="add-form" method="post" action="/params/add">
+        <input type="text" name="param" placeholder="im_ref=XXXX&sharedid=&irpid=101044&irgwc=1&afsrc=1" required>
+        <button class="btn btn-primary" type="submit">添加</button>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const list = document.getElementById('paramList');
+if (list) {
+  let dragging = null;
+  list.querySelectorAll('.param-item').forEach(item => {
+    item.setAttribute('draggable', true);
+    item.addEventListener('dragstart', () => { dragging = item; item.style.opacity = '.4'; });
+    item.addEventListener('dragend', () => { item.style.opacity = '1'; saveOrder(); });
+    item.addEventListener('dragover', e => {
+      e.preventDefault();
+      const r = item.getBoundingClientRect();
+      list.insertBefore(dragging, e.clientY < r.top + r.height / 2 ? item : item.nextSibling);
+    });
+  });
+  function saveOrder() {
+    const order = [...list.querySelectorAll('.param-item')].map(el => parseInt(el.dataset.idx));
+    fetch('/params/reorder', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({order}) })
+      .then(r => r.json()).then(() => location.reload());
+  }
+}
+</script>
+</body>
+</html>
