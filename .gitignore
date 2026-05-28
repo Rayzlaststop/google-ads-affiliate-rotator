@@ -3,6 +3,7 @@ credentials/google-ads.yaml
 Authorization Code.txt
 adslilnk-key.txt
 client_secret_*.json
+start_web.bat
 
 # 授权脚本，本地使用，不需要上传
 get_refresh_token.py
