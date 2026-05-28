@@ -1,7 +1,0 @@
-============================================================                                                                                          
-授权成功！请将以下信息填入 GitHub Secrets：                                                                                                           
-============================================================                                                                                          
-GOOGLE_ADS_CLIENT_ID      = 866744726219-m353i4r1hi5lsh43mjen07opgjrump3m.apps.googleusercontent.com                                                  
-GOOGLE_ADS_CLIENT_SECRET  = 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                                                                                       
-GOOGLE_ADS_REFRESH_TOKEN  = 1//0e81eMjk5kmrCCgYIARAAGA4SNwF-L9IrdwGIza3N2sPAJb2TygOmBK-miIOkTcxaYliB7coi8in1pgo9pZVCxmzqy4T-CSYWXnQ                   
-============================================================    

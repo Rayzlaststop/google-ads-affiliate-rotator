@@ -1,5 +1,8 @@
 # 本地凭证文件，绝对不能上传
 credentials/google-ads.yaml
+Authorization Code.txt
+adslilnk-key.txt
+client_secret_*.json
 
 # 授权脚本，本地使用，不需要上传
 get_refresh_token.py
