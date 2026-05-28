@@ -12,15 +12,16 @@ def load_client() -> GoogleAdsClient:
 
 def update_campaign_suffix(client: GoogleAdsClient, customer_id: str, campaign_id: str, suffix: str) -> None:
     campaign_service = client.get_service("CampaignService")
-    campaign = client.get_type("Campaign")
-
-    resource_name = campaign_service.campaign_path(customer_id, campaign_id)
-    campaign.resource_name = resource_name
-    campaign.final_url_suffix = suffix
 
     operation = client.get_type("CampaignOperation")
-    operation.update.CopyFrom(campaign)
-    operation.update_mask.CopyFrom(field_mask_pb2.FieldMask(paths=["final_url_suffix"]))
+    campaign = operation.update
+    campaign.resource_name = campaign_service.campaign_path(customer_id, campaign_id)
+    campaign.final_url_suffix = suffix
+
+    client.copy_from(
+        operation.update_mask,
+        field_mask_pb2.FieldMask(paths=["final_url_suffix"]),
+    )
 
     try:
         response = campaign_service.mutate_campaigns(
