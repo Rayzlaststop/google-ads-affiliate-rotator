@@ -1,8 +1,8 @@
 import os
 import sys
-import yaml
 from google.ads.googleads.client import GoogleAdsClient
 from google.ads.googleads.errors import GoogleAdsException
+from google.protobuf import field_mask_pb2
 
 
 def load_client() -> GoogleAdsClient:
@@ -18,12 +18,9 @@ def update_campaign_suffix(client: GoogleAdsClient, customer_id: str, campaign_i
     campaign.resource_name = resource_name
     campaign.final_url_suffix = suffix
 
-    field_mask = client.get_type("FieldMask")
-    field_mask.paths.append("final_url_suffix")
-
     operation = client.get_type("CampaignOperation")
     operation.update.CopyFrom(campaign)
-    operation.update_mask.CopyFrom(field_mask)
+    operation.update_mask.CopyFrom(field_mask_pb2.FieldMask(paths=["final_url_suffix"]))
 
     try:
         response = campaign_service.mutate_campaigns(
